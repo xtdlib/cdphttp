@@ -1,0 +1,33 @@
+cdphttp
+==============
+
+Extract cookies and user-agent from browser and fake browser request using Chrome's remote debugging protocol.
+
+Chrome must be running with remote debugging enabled:
+
+    google-chrome-stable --remote-debugging-port=9222 --user-data-dir=/tmp/chrome
+
+Usage
+
+	client := cdphttp.NewClient("ws://localhost:9222")
+	req, _ := http.NewRequest("GET", "https://example.com")
+	resp, _ := client.Do(req)
+
+Tips
+
+    Instead of running chrome locally, run chrome on a remote server with tailscale. 
+    Do things like login to websites using a remote desktop (remmina).
+    And run background tunnel to make the remote chrome debugging port accessible in tailscale network.
+
+        systemd.services."socat-9222" = {
+          enable = true;
+          serviceConfig = {
+            ExecStart = "${pkgs.socat}/bin/socat TCP-LISTEN:9222,bind=100.97.173.112,fork TCP:127.0.0.1:9222";
+          };
+          wantedBy = [ "network-online.target" ];
+        };
+
+    Then use the remote machine's tailscale IP address to connect to chrome debugging port.
+
+        client := cdphttp.NewHTTPClient("ws://100.97.173.112:9222")
+  

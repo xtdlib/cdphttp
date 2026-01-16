@@ -1,0 +1,49 @@
+name: update_deps
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        
+    - name: Update Go dependencies
+      run: |
+        set -exuo pipefail
+        
+        go mod tidy
+        go get -u ./...
+        go mod tidy
+        go mod verify
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are any changes to commit
+        if git diff --exit-code go.mod go.sum; then
+          echo "No changes to Go dependencies detected. Skipping commit."
+        else
+          git add go.mod go.sum
+          git commit -m "chore: update Go dependencies"
+          git push
+          echo "Go dependencies updated and committed."
+        fi
